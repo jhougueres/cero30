@@ -2,13 +2,23 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 
+function useAuth() {
+  const [usuario, setUsuario] = useState(null)
+  const [verificando, setVerificando] = useState(true)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) window.location.href = '/login'
+      else setUsuario(data.session.user)
+      setVerificando(false)
+    })
+  }, [])
+  return { usuario, verificando }
+}
+
 export default function Admin() {
+  const { verificando } = useAuth()
   const [restaurantes, setRestaurantes] = useState([])
   const [cargando, setCargando] = useState(true)
-
-  useEffect(() => {
-    cargarRestaurantes()
-  }, [])
 
   const cargarRestaurantes = async () => {
     const { data, error } = await supabase
@@ -17,6 +27,12 @@ export default function Admin() {
     if (!error) setRestaurantes(data)
     setCargando(false)
   }
+
+  useEffect(() => {
+    if (!verificando) cargarRestaurantes()
+  }, [verificando])
+
+  if (verificando) return <div style={{color:'white', padding:'2rem'}}>Verificando...</div>
 
   return (
     <>
@@ -44,7 +60,6 @@ export default function Admin() {
         .badge-premium { background: rgba(255,200,50,0.15); color: #EF9F27; }
         .cargando { text-align: center; padding: 3rem; color: rgba(255,255,255,0.4); font-size: 0.9rem; }
         .vacio { text-align: center; padding: 3rem; color: rgba(255,255,255,0.3); font-size: 0.9rem; }
-        .fecha { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
         .btn-refresh { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); padding: 0.45rem 1rem; border-radius: 50px; font-size: 0.8rem; cursor: pointer; }
         .btn-refresh:hover { border-color: rgba(255,255,255,0.3); color: white; }
       `}</style>

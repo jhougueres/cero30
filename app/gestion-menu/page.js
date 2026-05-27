@@ -2,7 +2,21 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 
+function useAuth() {
+  const [usuario, setUsuario] = useState(null)
+  const [verificando, setVerificando] = useState(true)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) window.location.href = '/login'
+      else setUsuario(data.session.user)
+      setVerificando(false)
+    })
+  }, [])
+  return { usuario, verificando }
+}
+
 export default function GestionMenu() {
+  const { verificando } = useAuth()
   const [platos, setPlatos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -10,10 +24,6 @@ export default function GestionMenu() {
   const [form, setForm] = useState({
     nombre: '', descripcion: '', precio: '', categoria: '', disponible: true, restaurante_id: 'demo'
   })
-
-  useEffect(() => {
-    cargarPlatos()
-  }, [])
 
   const cargarPlatos = async () => {
     const { data } = await supabase.from('platos').select('*')
@@ -57,6 +67,12 @@ export default function GestionMenu() {
     await supabase.from('platos').update({ disponible: !plato.disponible }).eq('id', plato.id)
     cargarPlatos()
   }
+
+  useEffect(() => {
+    if (!verificando) cargarPlatos()
+  }, [verificando])
+
+  if (verificando) return <div style={{color:'white', padding:'2rem'}}>Verificando...</div>
 
   const categorias = [...new Set(platos.map(p => p.categoria))]
 

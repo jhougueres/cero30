@@ -2,16 +2,24 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 
+function useAuth() {
+  const [usuario, setUsuario] = useState(null)
+  const [verificando, setVerificando] = useState(true)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) window.location.href = '/login'
+      else setUsuario(data.session.user)
+      setVerificando(false)
+    })
+  }, [])
+  return { usuario, verificando }
+}
+
 export default function Pedidos() {
+  const { verificando } = useAuth()
   const [pedidos, setPedidos] = useState([])
   const [cargando, setCargando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-
-  useEffect(() => {
-    cargarPedidos()
-    const intervalo = setInterval(cargarPedidos, 15000)
-    return () => clearInterval(intervalo)
-  }, [])
 
   const cargarPedidos = async () => {
     const { data } = await supabase
@@ -28,6 +36,16 @@ export default function Pedidos() {
       .eq('id', id)
     cargarPedidos()
   }
+
+  useEffect(() => {
+    if (!verificando) {
+      cargarPedidos()
+      const intervalo = setInterval(cargarPedidos, 15000)
+      return () => clearInterval(intervalo)
+    }
+  }, [verificando])
+
+  if (verificando) return <div style={{color:'white', padding:'2rem'}}>Verificando...</div>
 
   const pedidosFiltrados = filtro === 'todos'
     ? pedidos
